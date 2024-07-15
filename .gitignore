@@ -1,0 +1,9 @@
+.vs
+.vscode
+bin
+out
+CMake-*
+build
+CMakeSettings.json
+CMakePresets.json
+CMakeUserPresets.json
