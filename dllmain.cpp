@@ -144,6 +144,8 @@ DEFINE_HOOK(0x7CD810, ExeRun_Phoboshit, 0x9)
 			L"Debugger Notice", MB_OK);
 	}
 #endif
+
+#if I_BORROW_CONSOLE
 	if (!Console::Create())
 	{
 		MessageBoxW(NULL,
@@ -152,6 +154,6 @@ DEFINE_HOOK(0x7CD810, ExeRun_Phoboshit, 0x9)
 	}
 
 	_LJMP{ 0x7CD8EA ,_ExeTerminate };
-
+#endif
     return 0;
 }

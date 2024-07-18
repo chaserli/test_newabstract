@@ -4,6 +4,8 @@
 #include <UnitClass.h>
 #include <vector>
 
+class ShitTypeClass;
+
 class DECLSPEC_UUID("8DCDFF5D-E5EE-42D1-A33D-53980FE2A0D4")
 	ShitClass final : public AbstractClass
 {
@@ -109,12 +111,12 @@ public:
 	virtual void Update() override;
 
 public:
-	int ArrayIndex;
+	size_t ArrayIndex;
 	UnitClass* OwnerUnit;
 	UnitTypeClass* Image;
 	CoordStruct Location;
-	FacingClass Facing;
-	CDTimerClass ROFTimer;
+	DECLARE_PROPERTY(FacingClass, Facing);// Cyka noinit_t ne marche pas blyat
+	DECLARE_PROPERTY(CDTimerClass, ROFTimer);
 	int LastFrameInLogic;
 	int AwakenFrame;
 	int CurrentWeaponIndex;
@@ -123,7 +125,6 @@ public:
 	AnimClass* DirectionAnim;
 	DirType OwnerDirection;
 	CoordStruct Offset;
-	Matrix3D NowTransform;
 
 private:
 	void AddTracking();
@@ -133,29 +134,32 @@ public:
 	// starkku took the vacancy blyat
 	void AttachToUnit(UnitClass* self)
 	{
-		*(WORD*)((DWORD)self + 1682) = HIWORD((DWORD)this);
-		*(WORD*)((DWORD)self + 1722) = LOWORD((DWORD)this);
+		*(WORD*)((DWORD)self + 105) = HIWORD((DWORD)this);
+		*(WORD*)((DWORD)self + 117) = LOWORD((DWORD)this);
 	}
 
-	static void ReAttachAll()
+	static void ReAttachAllOnPostSwizzle()
 	{
 		for (auto shit : ShitClass::Array)
-		{
 			shit->AttachToUnit(shit->OwnerUnit);
-			shit->Facing.SetROT(shit->Image->ROT);
-		}
 	}
 
-	static ShitClass* __fastcall GetShit(UnitClass const* self)
+	static void ClearAllOnExit()
 	{
-		WORD high = *(WORD*)((DWORD)self + 1682);
-		WORD low = *(WORD*)((DWORD)self + 1722);
+		while (!ShitClass::Array.empty())
+			delete (*ShitClass::Array.rbegin());
+	}
+	static ShitClass* __fastcall GetShit(ObjectClass const* self)
+	{
+		WORD high = *(WORD*)((DWORD)self + 105);
+		WORD low = *(WORD*)((DWORD)self + 117);
 		return reinterpret_cast<ShitClass*>((DWORD)high << 16 | low);
 	}
-	static void __fastcall ClearShit(UnitClass const* self)
+
+	static void __fastcall ClearShit(ObjectClass* self)
 	{
-		*(WORD*)((DWORD)self + 1682) = 0;
-		*(WORD*)((DWORD)self + 1722) = 0;
+		*(WORD*)((DWORD)self + 105) = 0;
+		*(WORD*)((DWORD)self + 117) = 0;
 	}
 
 

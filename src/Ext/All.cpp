@@ -32,26 +32,32 @@ DEFINE_HOOK(0x67F3B7, LoadGame_BeforeST, 0x5)
 
 DEFINE_HOOK(0x67E68A, PostSwizzleShit_CuzAllVacancyTakenByKkuCykaBlyat, 0x5)
 {
-	ShitClass::ReAttachAll();
+	ShitClass::ReAttachAllOnPostSwizzle();
 	return 0;
+}
+
+template<typename Derived>
+requires std::derived_from<Derived,AbstractClass>
+void RegisterTClassFactory()
+{
+	auto pFactory = GameCreate<TClassFactory<Derived>>();
+
+	DWORD dwRegister;
+	if (SUCCEEDED(CoRegisterClassObject(
+		__uuidof(Derived), pFactory, CLSCTX_INPROC_SERVER, REGCLS_MULTIPLEUSE, &dwRegister
+	)))
+		Game::COMClasses->AddItem(dwRegister);
+
 }
 
 DEFINE_HOOK(0x6BD6B1, WinMain_RegisterShit, 0x5)
 {
-	auto pFactory = GameCreate<TClassFactory<ShitClass>>();
-
-	DWORD dwRegister;
-	if (SUCCEEDED(CoRegisterClassObject(
-		__uuidof(ShitClass), pFactory, CLSCTX_INPROC_SERVER, REGCLS_MULTIPLEUSE, &dwRegister
-	)))
-		Game::COMClasses->AddItem(dwRegister);
-
+	RegisterTClassFactory<ShitClass>();
 	return 0;
 }
 
 DEFINE_HOOK(0x685241, ClearLotsOfShits_IncludingMyShit, 0x6)
 {
-	while (!ShitClass::Array.empty())
-		delete (*ShitClass::Array.rbegin());
+	ShitClass::ClearAllOnExit();
 	return 0;
 }

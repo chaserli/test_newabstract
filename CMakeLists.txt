@@ -18,9 +18,10 @@ include_directories(${PROJECT_SOURCE_DIR}/YRpp)
 
 include_directories(${PROJECT_SOURCE_DIR}/src)
 
-if(CMAKE_BUILD_TYPE MATCHES Debug)
-    message(FATAL_ERROR "FUCK FUCK FUCK FUCK! CYKA BLYAT!")
-endif()
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /Od /Oy- /Ob0")
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /O2 /Oy /Ob2")
+set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} /O2 /Oy /Ob2")
+set(CMAKE_CXX_FLAGS_MINSIZEREL "${CMAKE_CXX_FLAGS_MINSIZEREL} /O2 /Oy /Ob2 /Zi")
 
 file(GLOB_RECURSE MY_SRC_FILES "${PROJECT_SOURCE_DIR}/src/*.cpp")
 
@@ -38,8 +39,25 @@ target_compile_definitions(${PROJECT_NAME} PUBLIC
     HAS_EXCEPTIONS=0
     _CRT_SECURE_NO_WARNINGS
     NTDDI_VERSION=0x06010000
+    _ALLOW_RTCc_IN_STL
+    __STDC_FORMAT_MACROS
+    __STDC_LIMIT_MACROS
+    _CRT_SECURE_NO_DEPRECATE
+    _CRT_NONSTDC_NO_DEPRECATE
+    _WINSOCK_DEPRECATED_NO_WARNINGS
+    _USE_32BIT_TIME_T
+
     SYR_VER=2
+    $<$<CONFIG:Debug>: I_FUCKING_DEBUG>
+    I_BORROW_CONSOLE
 )
+
+foreach(flag_var CMAKE_C_FLAGS CMAKE_C_FLAGS_DEBUG CMAKE_C_FLAGS_RELEASE CMAKE_C_FLAGS_RELWITHDEBINFO CMAKE_C_FLAGS_MINSIZEREL
+				 CMAKE_CXX_FLAGS CMAKE_CXX_FLAGS_DEBUG CMAKE_CXX_FLAGS_RELEASE CMAKE_CXX_FLAGS_RELWITHDEBINFO CMAKE_CXX_FLAGS_MINSIZEREL)
+	if(${flag_var} MATCHES "/RTC")
+		string(REGEX REPLACE "/RTC[^ ]*" "" ${flag_var} "${${flag_var}}")
+	endif()
+endforeach(flag_var)
 
 target_compile_options(${PROJECT_NAME} PUBLIC
     /W4
@@ -60,7 +78,6 @@ target_compile_options(${PROJECT_NAME} PUBLIC
     /wd4819
     /wd5103
     /wd5105
-    /wd26495
     /wd26812
     /arch:IA32
     /fp:fast
@@ -83,4 +100,9 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
      odbccp32
      dbghelp
      onecore
+)
+
+target_link_options(${PROJECT_NAME} PRIVATE
+    /DEBUG
+    $<$<NOT:$<CONFIG:Debug>>:/OPT:REF /OPT:ICF>
 )

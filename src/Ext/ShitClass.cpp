@@ -43,15 +43,16 @@ STDMETHODIMP ShitClass::QueryInterface(REFIID riid, void** ppvObject)
 
 STDMETHODIMP ShitClass::Load(IStream* pStm)
 {
+	size_t old_idx = this->ArrayIndex;
 	auto hr = reinterpret_cast<HRESULT(__stdcall*)(AbstractClass*, IStream*)>(0x410380)(this, pStm);
 	if (SUCCEEDED(hr))
 	{
 		new (this) ShitClass(noinit_t());
-		//Facing broken blyat
 		MSwizzle(this->OwnerUnit);
 		MSwizzle(this->Image);
 		MSwizzle(this->AttachedAnim);
 		MSwizzle(this->DirectionAnim);
+		this->ArrayIndex = old_idx;
 	}
 	return hr;
 }
@@ -89,7 +90,7 @@ ShitClass::ShitClass(UnitClass* owner, UnitTypeClass* image) :AbstractClass{ noi
 , OwnerUnit{ owner }
 , Image{ image }
 , Location{ 0,0,0 }
-, Facing{ 2 }
+, Facing{ image->ROT }
 , ROFTimer{}
 , LastFrameInLogic{ -1 }
 , AwakenFrame{ -1 }
@@ -98,21 +99,18 @@ ShitClass::ShitClass(UnitClass* owner, UnitTypeClass* image) :AbstractClass{ noi
 , DirectionAnim{ nullptr }
 , OwnerDirection{ DirType::North }
 , Offset{ -300,0,0 }
-, NowTransform{}
 , HowManyTimesIFuckingFired{ 0 }
 {
 	AddTracking();
 	this->AttachToUnit(owner);
-	this->Facing.SetROT(image->ROT);
 	Debug::Log("Making shit %d for %s with image of %s\n", this->ArrayIndex, this->OwnerUnit->Type->ID, this->Image->ID);
 }
 
-ShitClass::ShitClass(noinit_t) :AbstractClass{ noinit_t() }, Facing{ noinit_t() } {}
+ShitClass::ShitClass(noinit_t) :AbstractClass{ noinit_t() } {}
 
 ShitClass::ShitClass() : ShitClass(noinit_t())
 {
 	AddTracking();
-	Debug::Log("Making empty shit cykablyat!\n");
 }
 
 ShitClass::~ShitClass()
@@ -140,22 +138,22 @@ void ShitClass::ComputeCRC(CRCEngine& crc) const
 bool ShitClass::CheckRemoved()
 {
 	auto remove_shit = [this]()
-	{
-		GameCreate<AnimClass>(RulesClass::Instance->WarpOut, this->Location);
-		delete (this);
-		return true;
-	};
+		{
+			GameCreate<AnimClass>(RulesClass::Instance->WarpOut, this->Location);
+			delete (this);
+			return true;
+		};
 
 	auto can_removeshit = [this]()->bool
-	{
-		if (!this->OwnerUnit)
-			return true;
-		if (!this->OwnerUnit->IsAlive)
-			return true;
-		if (this->OwnerUnit->Health < 1)
-			return true;
-		return false;
-	};
+		{
+			if (!this->OwnerUnit)
+				return true;
+			if (!this->OwnerUnit->IsAlive)
+				return true;
+			if (this->OwnerUnit->Health < 1)
+				return true;
+			return false;
+		};
 
 	if (can_removeshit())
 		return remove_shit();
@@ -165,12 +163,12 @@ bool ShitClass::CheckRemoved()
 
 	if (this->AwakenFrame < 0)
 	{
-		Debug::Log("shit %d awaken !", this->ArrayIndex);
+		Debug::Log("shit %d awaken blyat! ", this->ArrayIndex);
 		this->AwakenFrame = Unsorted::CurrentFrame;
 	}
 
 	if (this->LastFrameInLogic > 0 && (Unsorted::CurrentFrame - this->LastFrameInLogic > 1))
-		Debug::Log("shit %d absent for %d frames\n", this->ArrayIndex, Unsorted::CurrentFrame - this->LastFrameInLogic);
+		Debug::Log("shit %d absent for %d frames blyat\n", this->ArrayIndex, Unsorted::CurrentFrame - this->LastFrameInLogic);
 
 	return false;
 }
@@ -189,14 +187,15 @@ void ShitClass::Update()
 	this->Offset.Z = 200 * std::pow(Math::sin(Math::TwoPi * ((Unsorted::CurrentFrame - this->AwakenFrame) % PERIODE) / PERIODE), 2);
 
 	auto lastloc = this->Location;
+	if (auto loco = this->OwnerUnit->Locomotor.GetInterfacePtr())// cyka elle n'est pas present lorsque dans le factory blyat
 	{
-		this->NowTransform = this->OwnerUnit->Locomotor.GetInterfacePtr()->Draw_Matrix(nullptr);
-		this->NowTransform.TranslateX(this->Offset.X);
+		auto nowTransform = loco->Draw_Matrix(nullptr);
+		nowTransform.TranslateX(this->Offset.X);
 		double turretRad = this->Facing.Current().GetRadian<32>();
 		double bodyRad = this->OwnerUnit->PrimaryFacing.Current().GetRadian<32>();
-		this->NowTransform.RotateZ((float)(turretRad - bodyRad));
+		nowTransform.RotateZ((float)(turretRad - bodyRad));
 
-		auto transl = this->NowTransform.GetTranslation();
+		auto transl = nowTransform.GetTranslation();
 		this->Location = this->OwnerUnit->Location + CoordStruct{ (int)transl.X, -(int)transl.Y, (int)transl.Z };
 	}
 
@@ -227,14 +226,14 @@ void ShitClass::Update()
 	if (!this->Facing.IsRotating() && !this->OwnerUnit->Target)
 		this->Facing.SetDesired(DirStruct{ this->Facing.Current().GetRadian<32>() + Math::Pi / 2 });
 	auto makeDirAnim = [&]()
-	{
-		auto name = DirNames[DirStruct{ this->OwnerDirection }.GetFacing<8>()];
-		if (auto dirAnim = AnimTypeClass::Find(name))
 		{
-			this->DirectionAnim = GameCreate<AnimClass>(dirAnim, this->OwnerUnit->Location + CoordStruct{ 0,0,100 });
-			this->DirectionAnim->SetOwnerObject(this->OwnerUnit);
-		}
-	};
+			auto name = DirNames[DirStruct{ this->OwnerDirection }.GetFacing<8>()];
+			if (auto dirAnim = AnimTypeClass::Find(name))
+			{
+				this->DirectionAnim = GameCreate<AnimClass>(dirAnim, this->OwnerUnit->Location + CoordStruct{ 0,0,100 });
+				this->DirectionAnim->SetOwnerObject(this->OwnerUnit);
+			}
+		};
 
 	if (!this->OwnerUnit->BunkerLinkedItem)
 	{
@@ -243,6 +242,7 @@ void ShitClass::Update()
 			Debug::Log("Making dir anim for Shit[%d] for the first time blyat!\n", this->ArrayIndex);
 			this->OwnerDirection = this->OwnerUnit->PrimaryFacing.Current().GetDir();
 			makeDirAnim();
+
 		}
 		else
 		{
@@ -341,12 +341,12 @@ DEFINE_HOOK(0x735678, UnitClass_CTOR_MakingShit, 0x6)
 	GET(UnitClass*, self, ESI);
 
 	auto can_shit = [](const char* id)
-	{
-		for (auto cand : candidates)
-			if (_strcmpi(id, cand) == 0)
-				return true;
-		return false;
-	};
+		{
+			for (auto cand : candidates)
+				if (_strcmpi(id, cand) == 0)
+					return true;
+			return false;
+		};
 
 	ShitClass::ClearShit(self);
 	if (can_shit(self->Type->ID))
@@ -393,7 +393,7 @@ void ShitClass::OnFire(BulletClass* pTraj)
 		, pThis->Owner->LaserColor
 		, ColorStruct{ 0xff, 0xff, 0xff }
 		, pTraj->WeaponType->ROF
-		);
+	);
 }
 
 DEFINE_HOOK(0x7413DD, UnitClass_Fire, 0x6)
