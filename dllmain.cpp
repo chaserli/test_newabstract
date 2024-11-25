@@ -121,7 +121,7 @@ void __declspec(naked) _ExeTerminate()
 
 DEFINE_HOOK(0x7CD810, ExeRun_Phoboshit, 0x9)
 {
-#if I_FUCKING_DEBUG
+#ifndef NDEBUG
 	if (DetachFromDebugger())
 	{
 		MessageBoxW(NULL,

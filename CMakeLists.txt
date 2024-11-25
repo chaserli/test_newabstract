@@ -14,14 +14,18 @@ set(CMAKE_VS_PLATFORM_NAME "x86")
 
 set(CMAKE_SHARED_LIBRARY_PREFIX "")
 
+if(NOT MSVC)
+    message(FATAL_ERROR "Must use Visual Studio!")
+endif()
+
+if("${CMAKE_SIZEOF_VOID_P}" STREQUAL "8")
+    message(FATAL_ERROR "Must use 32-bit")
+endif()
+
+set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded")
+
 include_directories(${PROJECT_SOURCE_DIR}/YRpp)
-
 include_directories(${PROJECT_SOURCE_DIR}/src)
-
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /Od /Oy- /Ob0")
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /O2 /Oy /Ob2")
-set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} /O2 /Oy /Ob2")
-set(CMAKE_CXX_FLAGS_MINSIZEREL "${CMAKE_CXX_FLAGS_MINSIZEREL} /O2 /Oy /Ob2 /Zi")
 
 file(GLOB_RECURSE MY_SRC_FILES "${PROJECT_SOURCE_DIR}/src/*.cpp")
 
@@ -48,7 +52,6 @@ target_compile_definitions(${PROJECT_NAME} PUBLIC
     _USE_32BIT_TIME_T
 
     SYR_VER=2
-    $<$<CONFIG:Debug>: I_FUCKING_DEBUG>
     I_BORROW_CONSOLE
 )
 
@@ -85,24 +88,6 @@ target_compile_options(${PROJECT_NAME} PUBLIC
     /Gs-
 )
 
-target_link_libraries(${PROJECT_NAME} PRIVATE
-     kernel32
-     user32
-     gdi32
-     winspool
-     comdlg32
-     advapi32
-     shell32
-     ole32
-     oleaut32
-     uuid
-     odbc32
-     odbccp32
-     dbghelp
-     onecore
-)
-
 target_link_options(${PROJECT_NAME} PRIVATE
-    /DEBUG
     $<$<NOT:$<CONFIG:Debug>>:/OPT:REF /OPT:ICF>
 )

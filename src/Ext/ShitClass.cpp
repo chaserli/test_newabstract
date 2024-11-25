@@ -47,11 +47,11 @@ STDMETHODIMP ShitClass::Load(IStream* pStm)
 	auto hr = reinterpret_cast<HRESULT(__stdcall*)(AbstractClass*, IStream*)>(0x410380)(this, pStm);
 	if (SUCCEEDED(hr))
 	{
-		new (this) ShitClass(noinit_t());
-		MSwizzle(this->OwnerUnit);
-		MSwizzle(this->Image);
-		MSwizzle(this->AttachedAnim);
-		MSwizzle(this->DirectionAnim);
+		std::construct_at(this, noinit_t());
+		AresSwizzle::RegisterPointerForChange(this->OwnerUnit);
+		AresSwizzle::RegisterPointerForChange(this->Image);
+		AresSwizzle::RegisterPointerForChange(this->AttachedAnim);
+		AresSwizzle::RegisterPointerForChange(this->DirectionAnim);
 		this->ArrayIndex = old_idx;
 	}
 	return hr;
@@ -197,6 +197,8 @@ void ShitClass::Update()
 
 		auto transl = nowTransform.GetTranslation();
 		this->Location = this->OwnerUnit->Location + CoordStruct{ (int)transl.X, -(int)transl.Y, (int)transl.Z };
+	}else{
+		Debug::Log("Shit[%d] has no locomotor at frame %d blyat!\n", this->ArrayIndex,Unsorted::CurrentFrame());
 	}
 
 	if (auto tgt = this->OwnerUnit->Target)
@@ -293,13 +295,13 @@ constexpr reference<double, 0xB1D008> const Pixel_Per_Lepton{};
 void ShitClass::DrawAsVXL(RectangleStruct* Rectangle, Point2D* CenterPoint, Matrix3D* pMatrix, DWORD dwUnk7)
 {
 	Matrix3D rot = *pMatrix;
-	rot.Translate(this->Offset.as<float>() * Pixel_Per_Lepton);
+	rot.Translate(Vector3D<float>{ (float)this->Offset.X, (float)this->Offset.Y, (float)this->Offset.Z } * Pixel_Per_Lepton);
 	rot.RotateZ(this->Facing.Current().GetRadian<32>() - this->OwnerUnit->PrimaryFacing.Current().GetRadian<32>());
 	this->OwnerUnit->Draw_A_VXL(
 		&this->Image->MainVoxel,
 		0,
 		-1,
-		&this->Image->VoxelTurretBarrelCache,
+		reinterpret_cast<IndexClass<int,int>*>(&this->Image->VoxelTurretBarrelCache),
 		Rectangle,
 		CenterPoint,
 		&rot,
